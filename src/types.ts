@@ -4,26 +4,26 @@ import type { Access, Field, PayloadRequest } from 'payload'
 export const PACKAGE_NAME = '@ogutdgn/payload-booking'
 
 export type Weekday =
-  | 'monday'
-  | 'tuesday'
-  | 'wednesday'
-  | 'thursday'
   | 'friday'
+  | 'monday'
   | 'saturday'
   | 'sunday'
+  | 'thursday'
+  | 'tuesday'
+  | 'wednesday'
 
 /** Stored / resolved schedule shape. The seed input uses `string[]` and is mapped to rows. */
 export type WeeklySchedule = Record<Weekday, { open: boolean; sessionStarts: { time: string }[] }>
 
 export type BookingWindow =
+  | { calendarWeeks: number; mode: 'calendar-weeks' }
   | { mode: 'rolling-days'; rollingDays: number }
-  | { mode: 'calendar-weeks'; calendarWeeks: number }
 
 export type EmailEvent =
-  | 'customer.confirmed'
   | 'business.booked'
   | 'business.cancelledByCustomer'
   | 'customer.cancelledByBusiness'
+  | 'customer.confirmed'
 
 export type EmailViewModelBase = {
   bookUrl: string
@@ -36,20 +36,20 @@ export type EmailViewModelBase = {
 }
 
 export type EmailViewModels = {
-  'business.booked': EmailViewModelBase & {
+  'business.booked': {
     adminUrl?: string
     customerEmail: string
     customerPhone: string
     customFields: Record<string, string>
     message?: string
-  }
+  } & EmailViewModelBase
   'business.cancelledByCustomer': EmailViewModelBase
-  'customer.cancelledByBusiness': EmailViewModelBase & { reason?: string }
-  'customer.confirmed': EmailViewModelBase & {
+  'customer.cancelledByBusiness': { reason?: string } & EmailViewModelBase
+  'customer.confirmed': {
     cancelUrl: string
     icsContent: string
     note?: string
-  }
+  } & EmailViewModelBase
 }
 
 export type EmailViewModelFor<E extends EmailEvent> = EmailViewModels[E]
@@ -83,12 +83,12 @@ export type BookingSlugs = {
 }
 
 export type BookingCaps = {
-  /** Rows created per ipHash in the window, any status. Default 5. */
-  maxPerIpInWindow?: number
-  /** Rows created per email in the window, any status. Default 3. */
-  maxPerEmailInWindow?: number
   /** Upcoming rows per email: status confirmed AND slotStart >= now. Default 3. */
   maxActivePerEmail?: number
+  /** Rows created per email in the window, any status. Default 3. */
+  maxPerEmailInWindow?: number
+  /** Rows created per ipHash in the window, any status. Default 5. */
+  maxPerIpInWindow?: number
   /** Default 60. */
   windowMinutes?: number
 }
@@ -160,10 +160,10 @@ export type BookingPluginOptions = {
 
   /** Host-owned routes the plugin links to. The plugin cannot own Next routes. */
   routes: {
-    /** e.g. '/appointments/cancel' -> '/appointments/cancel/[token]' */
-    cancelPath: string
     /** e.g. '/schedule' */
     bookPath: string
+    /** e.g. '/appointments/cancel' -> '/appointments/cancel/[token]' */
+    cancelPath: string
   }
 
   /** Public origin of the front-end site. Falls back to payload.config.serverURL. */
@@ -208,4 +208,4 @@ export const DEFAULT_API_BASE_PATH = '/booking'
  */
 export const SLOT_HOLDING_STATUSES = ['confirmed', 'completed', 'no-show'] as const
 
-export type AppointmentStatus = (typeof SLOT_HOLDING_STATUSES)[number] | 'cancelled'
+export type AppointmentStatus = 'cancelled' | (typeof SLOT_HOLDING_STATUSES)[number]
