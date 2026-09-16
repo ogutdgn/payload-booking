@@ -8,9 +8,11 @@ import { resourcesCollection } from './payload/collections/resources.js'
 import { bookingSettingsGlobal } from './payload/globals/bookingSettings.js'
 import { seedBooking } from './payload/seed.js'
 import { assertTimezoneSupported, resolveTimezones } from './payload/timezones.js'
+import { buildBookingEndpoints } from './server/index.js'
 import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS } from './types.js'
 
 export * from './core/index.js'
+export * from './server/index.js'
 export * from './types.js'
 
 export type ResolvedBookingOptions = {
@@ -52,7 +54,9 @@ export const resolveOptions = (
 export const bookingPlugin =
   (options: BookingPluginOptions): Plugin =>
   (config: Config): Config => {
-    const { apiBasePath, slugs } = resolveOptions(options, config)
+    // Resolving also validates: a colliding apiBasePath throws here rather than 404ing
+    // silently at runtime. The endpoint builder resolves its own copy.
+    const { slugs } = resolveOptions(options, config)
 
     assertTimezoneSupported(
       options.defaults.settings.timezone,
@@ -74,8 +78,9 @@ export const bookingPlugin =
       bookingSettingsGlobal({ options, slugs }),
     ]
 
-    // TODO(ring 3): push endpoints under `apiBasePath`.
-    void apiBasePath
+    if (!options.disabled) {
+      config.endpoints = [...(config.endpoints ?? []), ...buildBookingEndpoints(options)]
+    }
 
     // TODO(ring 4): push NavLinks and TodayWidget into admin.components.
 

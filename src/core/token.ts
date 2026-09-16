@@ -79,9 +79,16 @@ export const signCancelToken = (args: {
   return `${encoded}.${sign(deriveKey(args.secret, 'cancel'), encoded)}`
 }
 
+/**
+ * An expired token keeps its payload.
+ *
+ * Its signature is still genuine, so the cancel page can say "this link expired" about a
+ * named appointment rather than showing the blank "we do not recognise this link" state,
+ * which is what a tampered token gets.
+ */
 export type CancelTokenResult =
+  | { payload: CancelTokenPayload; state: 'expired' }
   | { payload: CancelTokenPayload; state: 'valid' }
-  | { state: 'expired' }
   | { state: 'invalid' }
 
 export const verifyCancelToken = (args: {
@@ -125,7 +132,7 @@ export const verifyCancelToken = (args: {
   }
 
   if (payload.exp * 1000 < now.getTime()) {
-    return { state: 'expired' }
+    return { payload, state: 'expired' }
   }
 
   return { payload, state: 'valid' }

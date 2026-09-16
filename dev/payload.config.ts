@@ -6,6 +6,8 @@ import path from 'path'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
 import { bookingPlugin } from '@ogutdgn/payload-booking'
+
+import { bookingOptions } from './bookingOptions.js'
 import { fileURLToPath } from 'url'
 
 import { testEmailAdapter } from './helpers/testEmailAdapter.js'
@@ -77,41 +79,7 @@ const buildDevConfig = async () => {
     onInit: async (payload) => {
       await seed(payload)
     },
-    plugins: [
-      bookingPlugin({
-        access: {
-          configure: ({ req }) => Boolean(req.user),
-          manage: ({ req }) => Boolean(req.user),
-        },
-        defaults: {
-          resource: { name: 'Showroom' },
-          settings: {
-            bookingWindow: { mode: 'rolling-days', rollingDays: 14 },
-            cancellationCutoffMinutes: 0,
-            capacityPerSlot: 1,
-            location: '2112 Rutland Dr #150, Austin, TX 78758',
-            minNoticeMinutes: 120,
-            notificationEmails: ['info@example.com'],
-            phone: '(512) 555-0100',
-            slotDurationMinutes: 60,
-            timezone: 'America/Chicago',
-            weeklySchedule: {
-              monday: { open: true, sessionStarts: ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'] },
-              tuesday: { open: true, sessionStarts: ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'] },
-              wednesday: { open: true, sessionStarts: ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'] },
-              thursday: { open: true, sessionStarts: ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'] },
-              friday: { open: true, sessionStarts: ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00'] },
-              saturday: { open: true, sessionStarts: ['10:00', '11:00', '13:00', '14:00'] },
-              sunday: { open: false, sessionStarts: [] },
-            },
-          },
-        },
-        email: { from: 'Vera Dev <bookings@example.com>' },
-        routes: { bookPath: '/schedule', cancelPath: '/appointments/cancel' },
-        siteUrl: 'http://localhost:3000',
-        tokenSecret: process.env.BOOKING_TOKEN_SECRET || 'dev-only-booking-secret-change-me-32+',
-      }),
-    ],
+    plugins: [bookingPlugin(bookingOptions)],
     secret: process.env.PAYLOAD_SECRET || 'test-secret_key',
     sharp,
     typescript: {

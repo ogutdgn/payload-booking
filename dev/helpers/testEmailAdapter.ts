@@ -1,38 +1,65 @@
 import type { EmailAdapter, SendEmailOptions } from 'payload'
 
+type CapturedEmail = {
+  attachments?: { contentType?: string; filename?: string }[]
+  html?: string
+  subject?: string
+  text?: string
+  to?: string
+}
+
+const store = (): CapturedEmail[] => {
+  const globalStore = globalThis as { __bookingEmails__?: CapturedEmail[] }
+
+  globalStore.__bookingEmails__ = globalStore.__bookingEmails__ ?? []
+
+  return globalStore.__bookingEmails__
+}
+
+const toAddress = (message: SendEmailOptions): string => {
+  if (typeof message.to === 'string') {
+    return message.to
+  }
+
+  if (Array.isArray(message.to)) {
+    return message.to
+      .map((entry: { address?: string } | string) =>
+        typeof entry === 'string' ? entry : (entry?.address ?? ''),
+      )
+      .join(', ')
+  }
+
+  return message.to?.address ?? ''
+}
+
 /**
- * Logs all emails to stdout
+ * Captures every email instead of sending it, and logs a one-line summary.
+ *
+ * Named something other than 'console' on purpose: the plugin treats Payload's built-in
+ * console adapter as "no adapter configured" and skips sending entirely, which would make
+ * every email assertion in the test suite vacuous.
  */
-export const testEmailAdapter: EmailAdapter<void> = ({ payload }) => ({
-  name: 'test-email-adapter',
+export const testEmailAdapter: EmailAdapter<{ messageId: string }> = ({ payload }) => ({
+  name: 'booking-test-capture',
   defaultFromAddress: 'dev@payloadcms.com',
-  defaultFromName: 'Payload Test',
-  sendEmail: async (message) => {
-    const stringifiedTo = getStringifiedToAddress(message)
-    const res = `Test email to: '${stringifiedTo}', Subject: '${message.subject}'`
-    payload.logger.info({ content: message, msg: res })
-    return Promise.resolve()
+  defaultFromName: 'Payload Booking Dev',
+  sendEmail: (message) => {
+    const to = toAddress(message)
+
+    store().push({
+      attachments: (message.attachments ?? []).map((attachment: Record<string, unknown>) => ({
+        contentType:
+          typeof attachment.contentType === 'string' ? attachment.contentType : undefined,
+        filename: typeof attachment.filename === 'string' ? attachment.filename : undefined,
+      })),
+      html: typeof message.html === 'string' ? message.html : undefined,
+      subject: message.subject,
+      text: typeof message.text === 'string' ? message.text : undefined,
+      to,
+    })
+
+    payload.logger.info(`[email] to ${to}: ${message.subject ?? '(no subject)'}`)
+
+    return Promise.resolve({ messageId: `test-${store().length}` })
   },
 })
-
-function getStringifiedToAddress(message: SendEmailOptions): string | undefined {
-  let stringifiedTo: string | undefined
-
-  if (typeof message.to === 'string') {
-    stringifiedTo = message.to
-  } else if (Array.isArray(message.to)) {
-    stringifiedTo = message.to
-      .map((to: { address: string } | string) => {
-        if (typeof to === 'string') {
-          return to
-        } else if (to.address) {
-          return to.address
-        }
-        return ''
-      })
-      .join(', ')
-  } else if (message.to?.address) {
-    stringifiedTo = message.to.address
-  }
-  return stringifiedTo
-}

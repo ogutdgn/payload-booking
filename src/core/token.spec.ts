@@ -187,3 +187,20 @@ describe('hashIp', () => {
     expect(hashIp('203.0.113.7', SECRET)).not.toBe(hashIp('203.0.113.7', OTHER_SECRET))
   })
 })
+
+describe('expired cancel tokens', () => {
+  it('still carry their appointment, so the page can name it', () => {
+    // A tampered token is anonymous; an expired one is genuine and merely old. The cancel
+    // page shows different things for the two, so the verifier has to tell them apart.
+    const token = signCancelToken({
+      appointmentId: 'appt-1',
+      expiresAt: at(60),
+      secret: SECRET,
+    })
+
+    const result = verifyCancelToken({ now: at(61), secret: SECRET, token })
+
+    expect(result.state).toBe('expired')
+    expect(result.state === 'expired' && result.payload.a).toBe('appt-1')
+  })
+})
