@@ -59,9 +59,6 @@ const dayGroup = (day: Weekday, args: WeeklyScheduleFieldArgs): GroupField => {
       name: 'sessionStarts',
       type: 'array',
       admin: {
-        components: {
-          RowLabel: undefined,
-        },
         condition: (_, siblingData) => Boolean(siblingData?.open),
         description:
           'The times an appointment can start, in 24-hour form such as 09:00 or 14:30. ' +

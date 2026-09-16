@@ -8,7 +8,7 @@ import { resourcesCollection } from './payload/collections/resources.js'
 import { bookingSettingsGlobal } from './payload/globals/bookingSettings.js'
 import { seedBooking } from './payload/seed.js'
 import { assertTimezoneSupported, resolveTimezones } from './payload/timezones.js'
-import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS, PACKAGE_NAME } from './types.js'
+import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS } from './types.js'
 
 export * from './core/index.js'
 export * from './types.js'
@@ -61,23 +61,17 @@ export const bookingPlugin =
 
     config.collections = [
       ...(config.collections ?? []),
-      appointmentsCollection({
-        options,
-        slugs,
-        statusActionsComponent: `${PACKAGE_NAME}/client#StatusActions`,
-        statusLabelComponent: `${PACKAGE_NAME}/client#StatusLabel`,
-      }),
+      // The admin component paths are passed in the next step, once the components exist.
+      // Registering a path with no implementation makes Payload log an import-map error on
+      // every render, so the paths and the components land together.
+      appointmentsCollection({ options, slugs }),
       blackoutDatesCollection({ options, slugs }),
       resourcesCollection({ options, slugs }),
     ]
 
     config.globals = [
       ...(config.globals ?? []),
-      bookingSettingsGlobal({
-        options,
-        previewComponent: `${PACKAGE_NAME}/client#WeekdayPreview`,
-        slugs,
-      }),
+      bookingSettingsGlobal({ options, slugs }),
     ]
 
     // TODO(ring 3): push endpoints under `apiBasePath`.
