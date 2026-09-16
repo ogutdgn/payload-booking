@@ -6,7 +6,8 @@ A visitor picks a real time slot on your site, the appointment appears in the Pa
 admin, both sides get email, either side can cancel, and **the same slot can never be
 sold twice** — enforced by a database uniqueness constraint, not by application logic.
 
-> **Status: not published yet.** The build specification is
+> **Status: 0.1.0.** In use but not yet proven in production, so the version stays below
+> 1.0 until the first client site has run it for a while. The build specification is
 > [`PLUGIN_BOOKING_SPEC.md`](./PLUGIN_BOOKING_SPEC.md), and it is the source of truth for
 > every behaviour described here.
 

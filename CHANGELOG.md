@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-16
+
+First release. Everything below is new.
+
 ### Added
 
 **Booking**
@@ -76,4 +80,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI runs typecheck, lint, unit tests under two timezones, integration tests on both
   databases, and a packaged-install check.
 
-[Unreleased]: https://github.com/ogutdgn/payload-booking/commits/main
+[0.1.0]: https://github.com/ogutdgn/payload-booking/releases/tag/v0.1.0
+[Unreleased]: https://github.com/ogutdgn/payload-booking/compare/v0.1.0...HEAD
