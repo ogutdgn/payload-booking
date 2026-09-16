@@ -101,6 +101,7 @@ once, and the owner edits it in the admin afterwards.
 | `apiBasePath` | `/booking` | Where the endpoints mount under Payload's API route. |
 | `slugs` | see below | Rename any of the four collections and the global. |
 | `labels` | `{ locale: 'en-US', hour12: true }` | How every time and date is written. |
+| `overrides` | none | Rename screens, add fields, change columns, swap admin components. See below. |
 | `supportedTimezones` | Payload's own list | Extend the timezone choices. |
 | `customerFields` | none | Extra fields on the booking form. Text, textarea, email, number, select and checkbox. |
 | `bookingCaps` | 5/hour per IP, 3/hour per email, 3 upcoming per email | Per-visitor limits. |
@@ -186,9 +187,71 @@ export default async function CancelPage({ params }: { params: Promise<{ token: 
 
 Then run `payload generate:importmap` and set `BOOKING_TOKEN_SECRET`.
 
-The components are unstyled by default. Either import the optional stylesheet with
-`import '@ogutdgn/payload-booking/styles.css'`, or pass your own class names through the
-`classNames` prop. Every visible sentence can be replaced through `messages`.
+### Designing your own booking page
+
+The components are one possible shape, not the shape. Three levels of control, pick the
+one that fits the project.
+
+**Restyle them.** Skip the stylesheet and name the parts yourself.
+
+```tsx
+<BookingForm classNames={{ slot: 'rounded-xl border px-4 py-3',
+                           slotSelected: 'bg-black text-white' }} />
+```
+
+Every visible sentence is replaceable too, through `messages`.
+
+**Write your own markup on our behaviour.** `useBookingFlow` gives you the state and the
+actions and draws nothing. This is what to reach for when a project needs a calendar grid,
+a wizard, or anything else that is not a list.
+
+```tsx
+const flow = useBookingFlow({ apiUrl: '/api/booking' })
+
+// flow.days, flow.select(slot), flow.selected, flow.values, flow.setValue(name, value),
+// flow.submit(), flow.submitting, flow.fieldErrors, flow.errorCode, flow.success
+```
+
+It handles the parts that are easy to get subtly wrong: keeping availability fresh,
+fetching the anti-bot token on load and retrying when it expires, and recovering when
+someone takes the slot mid-form without losing a single field the visitor typed. It
+returns facts and actions, never wording or UI decisions, so it does not assume your
+layout. `dev/app/(frontend)/wizard` is a worked example in a completely different shape.
+
+`useCancelFlow` does the same for the cancellation page: one `state` value out of five to
+branch on, plus `confirm()`.
+
+If even the hooks do not fit, the eight endpoints below constrain nothing.
+
+### Changing the admin
+
+Pass `overrides` to rename screens, add your own fields, change the list columns, or swap
+a component for one of yours.
+
+```ts
+bookingPlugin({
+  overrides: {
+    resources: { labels: { plural: 'Rooms', singular: 'Room' } },
+    appointments: {
+      admin: { defaultColumns: ['slotStart', 'title', 'status'] },
+      fields: ({ defaultFields }) => [
+        ...defaultFields,
+        { name: 'assignedTo', type: 'relationship', relationTo: 'users' },
+      ],
+    },
+  },
+})
+```
+
+Your fragment is merged on top of what the plugin built, and your hooks run after ours
+rather than replacing them.
+
+What an override cannot do is weaken a guarantee. Remove the unique lock key, the status
+guard or a derived time field and the plugin refuses to start, naming the field and why it
+matters, rather than quietly making "never double-booked" optional.
+
+The admin's *look* is Payload's own, not the plugin's. You restyle it once per project
+with Payload's admin stylesheet, and it applies to the whole panel.
 
 ## Development
 

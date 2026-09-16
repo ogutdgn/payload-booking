@@ -1,5 +1,7 @@
 import type { Access, Field, PayloadRequest } from 'payload'
 
+import type { BookingOverrides } from './payload/overrides.js'
+
 /** Package name, used to build every admin component path string (spec §4.1). */
 export const PACKAGE_NAME = '@ogutdgn/payload-booking'
 
@@ -157,6 +159,16 @@ export type BookingPluginOptions = {
     event: AppointmentChangeEvent
     req: PayloadRequest
   }) => Promise<void> | void
+
+  /**
+   * Adjust what the plugin builds in the admin: rename screens, add your own fields,
+   * change the list columns, swap a component for one of yours.
+   *
+   * Merged on top of the plugin's own config. The rules that keep bookings correct are
+   * reapplied afterwards, so an override cannot switch off double-booking protection; it
+   * throws at startup instead, naming what it removed and why it matters.
+   */
+  overrides?: BookingOverrides
 
   /** Host-owned routes the plugin links to. The plugin cannot own Next routes. */
   routes: {

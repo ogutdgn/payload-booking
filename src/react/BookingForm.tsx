@@ -1,19 +1,24 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useRef } from 'react'
 
 import type { Messages } from './messages.js'
 import type {
   BookingClassNames,
   BookingSuccess,
   CustomerFieldDescriptor,
-  Day,
   Slot,
 } from './types.js'
+import type { BookingFlow } from './useBookingFlow.js'
 
-import { AvailabilityPicker } from './AvailabilityPicker.js'
 import { fill, resolveMessages } from './messages.js'
 import { cx } from './types.js'
+import {
+  CORE_CUSTOMER_FIELDS,
+  FIELD_ERROR_INVALID_EMAIL,
+  FIELD_ERROR_REQUIRED,
+  useBookingFlow,
+} from './useBookingFlow.js'
 
 export type BookingFormProps = {
   /** Full prefix of the plugin's endpoints, e.g. '/api/booking'. */
@@ -25,6 +30,8 @@ export type BookingFormProps = {
   classNames?: BookingClassNames
   /** Extra customer fields, from `toCustomerFieldDescriptors(options.customerFields)`. */
   fields?: CustomerFieldDescriptor[]
+  /** An externally managed flow, when the page needs to drive it itself. */
+  flow?: BookingFlow
   /** Server-minted token. Omit and the form fetches its own, which is the safer default. */
   formToken?: string
   messages?: Partial<Messages>
@@ -32,34 +39,12 @@ export type BookingFormProps = {
   resource?: string
 }
 
-type FieldErrors = Record<string, string>
-
-const CORE_FIELDS: CustomerFieldDescriptor[] = [
-  { name: 'name', type: 'text', label: 'Name', required: true },
-  { name: 'email', type: 'email', label: 'Email', required: true },
-  { name: 'phone', type: 'text', label: 'Phone', required: true },
-]
-
-/** The three-second trap measures from page load, so a retry has to respect it. */
-const MIN_TOKEN_AGE_MS = 3100
-
-const tokenIssuedAt = (token: string): number => {
-  const seconds = Number(token.slice(0, token.indexOf('.')))
-
-  return Number.isFinite(seconds) ? seconds * 1000 : 0
-}
-
-const wait = (ms: number): Promise<void> =>
-  new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
-
 /**
- * Pick a time, fill in three fields, submit.
+ * A ready-made booking page.
  *
- * The rule that shapes everything here: a visitor never loses what they typed. A slot
- * taken by someone else, an expired anti-bot token, a network blip; each of them re-runs
- * the request or asks for one more click, and the form fields stay exactly as they were.
+ * Every piece of behaviour comes from `useBookingFlow`, and nothing here is privileged:
+ * this component is one possible shape, not the shape. For a different layout, call the
+ * hook and write your own markup. What follows is only rendering.
  */
 export const BookingForm: React.FC<BookingFormProps> = ({
   apiUrl = '/api/booking',
@@ -67,236 +52,95 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   challengeToken,
   classNames = {},
   fields = [],
+  flow: providedFlow,
   formToken,
   messages,
   onSuccess,
   resource,
 }) => {
   const copy = resolveMessages(messages)
-  const allFields = useMemo(() => [...CORE_FIELDS, ...fields], [fields])
-
-  const [values, setValues] = useState<Record<string, string>>({})
-  const [message, setMessage] = useState('')
-  const [honeypot, setHoneypot] = useState('')
-  const [selected, setSelected] = useState<null | Slot>(null)
-  const [errors, setErrors] = useState<FieldErrors>({})
-  const [formError, setFormError] = useState<null | string>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState<BookingSuccess | null>(null)
-  const [blockedStarts, setBlockedStarts] = useState<string[]>([])
-  const [phone, setPhone] = useState('')
-  const [reloadKey, setReloadKey] = useState(0)
-
-  const token = useRef<null | string>(formToken ?? null)
   const gridRef = useRef<HTMLDivElement>(null)
 
-  // Fetched on mount rather than rendered into the page. A token minted during render is
-  // baked into a statically built page, so every visitor would share one, issued at deploy
-  // time and expired six hours later.
-  const fetchToken = useCallback(async (): Promise<null | string> => {
-    try {
-      const response = await fetch(`${apiUrl}/form-token`, {
-        headers: { Accept: 'application/json' },
-      })
-      const body = (await response.json()) as { formToken?: string }
+  const ownFlow = useBookingFlow({
+    apiUrl,
+    challengeToken,
+    fields,
+    formToken,
+    onSuccess,
+    resource,
+  })
+  const flow = providedFlow ?? ownFlow
 
-      token.current = body.formToken ?? null
+  const allFields = [...CORE_CUSTOMER_FIELDS, ...fields]
+  const openDays = flow.days.filter((day) => day.slots.length > 0)
+  const hasAnySlot = openDays.some((day) => day.slots.some((slot) => slot.available))
 
-      return token.current
-    } catch {
-      return null
+  const describeField = (value: string): string => {
+    if (value === FIELD_ERROR_REQUIRED) {
+      return copy.fieldRequired
     }
-  }, [apiUrl])
 
-  useEffect(() => {
-    if (!formToken) {
-      void fetchToken()
+    if (value === FIELD_ERROR_INVALID_EMAIL) {
+      return copy.invalidEmail
     }
-  }, [fetchToken, formToken])
 
-  // Taken from the availability response rather than fetched again: the phone number
-  // appears in several error messages, and one source keeps them consistent.
-  const handleMeta = useCallback((meta: { phone: string }) => {
-    setPhone(meta.phone)
-  }, [])
-
-  const setValue = (name: string, value: string): void => {
-    setValues((previous) => ({ ...previous, [name]: value }))
-    setErrors((previous) => {
-      if (!previous[name]) {
-        return previous
-      }
-
-      const next = { ...previous }
-
-      delete next[name]
-
-      return next
-    })
+    return value
   }
 
-  const validate = (): boolean => {
-    const found: FieldErrors = {}
-
-    for (const field of allFields) {
-      const value = (values[field.name] ?? '').trim()
-
-      if (field.required && value === '') {
-        found[field.name] = copy.fieldRequired
-      }
-
-      if (field.type === 'email' && value !== '' && !/^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/.test(value)) {
-        found[field.name] = copy.invalidEmail
-      }
+  const formError = ((): null | string => {
+    switch (flow.errorCode) {
+      case 'already_booked':
+        return copy.alreadyBooked
+      case null:
+      case 'validation':
+        return null
+      case 'slot_taken':
+      case 'slot_unavailable':
+        return `${copy.slotTaken} ${copy.keepDetails}`
+      case 'too_many':
+        return fill(copy.tooManyBookings, { phone: flow.meta.phone })
+      default:
+        return fill(copy.genericError, { phone: flow.meta.phone })
     }
+  })()
 
-    setErrors(found)
-
-    return Object.keys(found).length === 0
-  }
-
-  const post = useCallback(
-    async (slot: Slot): Promise<Response> =>
-      await fetch(`${apiUrl}/book`, {
-        body: JSON.stringify({
-          challengeToken,
-          customer: Object.fromEntries(
-            allFields.map((field) => [field.name, (values[field.name] ?? '').trim()]),
-          ),
-          formToken: token.current ?? '',
-          message: message.trim() || undefined,
-          resource,
-          source: {
-            page: typeof window === 'undefined' ? undefined : window.location.pathname,
-            referrer: typeof document === 'undefined' ? undefined : document.referrer || undefined,
-          },
-          start: slot.start,
-          website: honeypot,
-        }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      }),
-    [allFields, apiUrl, challengeToken, honeypot, message, resource, values],
-  )
-
-  const submit = async (event: React.FormEvent): Promise<void> => {
+  const handleSubmit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault()
 
-    if (!selected || submitting) {
-      return
-    }
+    const before = flow.selected
 
-    if (!validate()) {
-      return
-    }
+    await flow.submit()
 
-    setSubmitting(true)
-    setFormError(null)
-
-    try {
-      let response = await post(selected)
-      let body = (await response.json()) as {
-        error?: string
-        errors?: { message: string; path: string }[]
-      } & BookingSuccess
-
-      // One retry for the anti-bot token. Too fast means waiting out the remaining seconds
-      // and resubmitting the same token; invalid or expired means fetching a new one and
-      // waiting for it to age past the minimum.
-      if (
-        response.status === 400 &&
-        ['token_expired', 'token_invalid', 'token_too_fast'].includes(body.error ?? '')
-      ) {
-        if (body.error === 'token_too_fast' && token.current) {
-          const age = Date.now() - tokenIssuedAt(token.current)
-
-          await wait(Math.max(0, MIN_TOKEN_AGE_MS - age))
-        } else {
-          await fetchToken()
-          await wait(MIN_TOKEN_AGE_MS)
-        }
-
-        response = await post(selected)
-        body = (await response.json()) as typeof body
-      }
-
-      if (response.ok) {
-        setSuccess(body)
-        onSuccess?.(body)
-
-        return
-      }
-
-      if (body.error === 'already_booked') {
-        setFormError(copy.alreadyBooked)
-
-        return
-      }
-
-      // The slot went while they were typing. Grey it out, re-fetch, say so plainly, and
-      // leave every field exactly as it was.
-      if (body.error === 'slot_taken' || body.error === 'slot_unavailable') {
-        setBlockedStarts((previous) => [...previous, selected.start])
-        setSelected(null)
-        setReloadKey((previous) => previous + 1)
-        setFormError(`${copy.slotTaken} ${copy.keepDetails}`)
-        gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-
-        return
-      }
-
-      if (body.error === 'too_many') {
-        setFormError(fill(copy.tooManyBookings, { phone }))
-
-        return
-      }
-
-      if (response.status === 422 && Array.isArray(body.errors)) {
-        const found: FieldErrors = {}
-
-        for (const entry of body.errors) {
-          const name = entry.path.replace(/^customer\./, '')
-
-          found[name] = entry.message
-        }
-
-        setErrors(found)
-
-        return
-      }
-
-      setFormError(fill(copy.genericError, { phone }))
-    } catch {
-      setFormError(fill(copy.genericError, { phone }))
-    } finally {
-      setSubmitting(false)
+    // Bring the grid back into view when the chosen slot went, so the visitor sees why.
+    if (before && !flow.selected) {
+      gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
-  if (success) {
+  if (flow.success) {
     return (
       <div className={cx('booking-success', classNames.success)} role="status">
         <h2>{copy.successHeading}</h2>
         <p>
-          {success.label} — {copy.successBody}
+          {flow.success.label} — {copy.successBody}
         </p>
         <p>
-          Reference: <strong>{success.reference}</strong>
+          Reference: <strong>{flow.success.reference}</strong>
         </p>
         <p>
-          {success.icsContent ? (
+          {flow.success.icsContent ? (
             <a
               className={classNames.button}
               download="appointment.ics"
-              href={`data:text/calendar;charset=utf-8,${encodeURIComponent(success.icsContent)}`}
+              href={`data:text/calendar;charset=utf-8,${encodeURIComponent(flow.success.icsContent)}`}
             >
               Add to calendar
             </a>
           ) : null}{' '}
-          {success.googleCalendarUrl ? (
+          {flow.success.googleCalendarUrl ? (
             <a
               className={classNames.button}
-              href={success.googleCalendarUrl}
+              href={flow.success.googleCalendarUrl}
               rel="noreferrer"
               target="_blank"
             >
@@ -309,23 +153,44 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   }
 
   return (
-    <form className={cx('booking-form', classNames.form)} noValidate onSubmit={submit}>
+    <form className={cx('booking-form', classNames.form)} noValidate onSubmit={handleSubmit}>
       <div ref={gridRef}>
         <h2>{copy.chooseTime}</h2>
-        <AvailabilityPicker
-          apiUrl={apiUrl}
-          classNames={classNames}
-          key={reloadKey}
-          messages={messages}
-          onMeta={handleMeta}
-          onSelect={(slot) => {
-            setSelected(slot)
-            setFormError(null)
-          }}
-          resource={resource}
-          selected={selected?.start ?? null}
-          unavailableStarts={blockedStarts}
-        />
+
+        {flow.loadingAvailability ? (
+          <p aria-live="polite" className={classNames.notice}>
+            {copy.loading}
+          </p>
+        ) : flow.availabilityError ? (
+          <p className={classNames.error} role="alert">
+            {fill(copy.genericError, { phone: flow.meta.phone })}
+          </p>
+        ) : hasAnySlot ? (
+          <div className={cx('booking-picker', classNames.dayList)}>
+            {openDays.map((day) => (
+              <section className={cx('booking-day', classNames.day)} key={day.date}>
+                <h3 className={cx('booking-day__heading', classNames.dayHeading)}>{day.label}</h3>
+                <ul className={cx('booking-slots', classNames.slotGrid)}>
+                  {day.slots.map((slot) => (
+                    <SlotButton
+                      classNames={classNames}
+                      fullLabel={copy.fullSlot}
+                      key={slot.start}
+                      onSelect={flow.select}
+                      selected={flow.selected?.start === slot.start}
+                      slot={slot}
+                      unavailable={!slot.available || flow.unavailableStarts.includes(slot.start)}
+                    />
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <p className={classNames.notice} role="status">
+            {fill(copy.emptyWindow, { days: flow.days.length, phone: flow.meta.phone })}
+          </p>
+        )}
       </div>
 
       <h2>{copy.yourDetails}</h2>
@@ -333,11 +198,13 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {allFields.map((field) => (
         <FieldRow
           classNames={classNames}
-          error={errors[field.name]}
+          error={
+            flow.fieldErrors[field.name] ? describeField(flow.fieldErrors[field.name]) : undefined
+          }
           field={field}
           key={field.name}
-          onChange={setValue}
-          value={values[field.name] ?? ''}
+          onChange={flow.setValue}
+          value={flow.values[field.name] ?? ''}
         />
       ))}
 
@@ -350,10 +217,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           className={classNames.input}
           id="booking-message"
           onChange={(event) => {
-            setMessage(event.target.value)
+            flow.setMessage(event.target.value)
           }}
           rows={3}
-          value={message}
+          value={flow.message}
         />
       </div>
 
@@ -366,30 +233,61 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           id="booking-website"
           name="website"
           onChange={(event) => {
-            setHoneypot(event.target.value)
+            flow.setHoneypot(event.target.value)
           }}
           tabIndex={-1}
           type="text"
-          value={honeypot}
+          value={flow.honeypot}
         />
       </div>
 
       {challenge}
 
-      <p aria-live="assertive" className={cx(classNames.error)} role="alert">
+      <p aria-live="assertive" className={classNames.error} role="alert">
         {formError}
       </p>
 
       <button
         className={cx('booking-submit', classNames.button)}
-        disabled={submitting || !selected}
+        disabled={!flow.canSubmit}
         type="submit"
       >
-        {submitting ? copy.busy : copy.submit}
+        {flow.submitting ? copy.busy : copy.submit}
       </button>
     </form>
   )
 }
+
+const SlotButton: React.FC<{
+  classNames: BookingClassNames
+  fullLabel: string
+  onSelect: (slot: null | Slot) => void
+  selected: boolean
+  slot: Slot
+  unavailable: boolean
+}> = ({ classNames, fullLabel, onSelect, selected, slot, unavailable }) => (
+  <li>
+    <button
+      aria-pressed={selected}
+      className={cx(
+        'booking-slot',
+        classNames.slot,
+        selected && classNames.slotSelected,
+        unavailable && classNames.slotUnavailable,
+      )}
+      data-selected={selected ? 'true' : undefined}
+      data-unavailable={unavailable ? 'true' : undefined}
+      disabled={unavailable}
+      onClick={() => {
+        onSelect(selected ? null : slot)
+      }}
+      type="button"
+    >
+      {slot.label}
+      {unavailable ? <span className="booking-slot__note"> — {fullLabel}</span> : null}
+    </button>
+  </li>
+)
 
 const FieldRow: React.FC<{
   classNames: BookingClassNames
@@ -454,5 +352,4 @@ const FieldRow: React.FC<{
   )
 }
 
-export type { Day }
 export default BookingForm

@@ -52,10 +52,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **Frontend**
 
-- `BookingForm`, `AvailabilityPicker` and `CancelView`, exported from `./react`. Headless,
-  accessible, with a class-name map and replaceable copy.
+- `BookingForm` and `CancelView`, exported from `./react`. Headless, accessible, with a
+  class-name map and replaceable copy.
 - A slot taken mid-form greys out and availability refreshes without losing a single field
   the visitor typed.
+
+**Customisation**
+
+- `useBookingFlow` and `useCancelFlow`: the behaviour behind a booking page and a
+  cancellation page, with no markup. Write any layout you like on top and still get fresh
+  availability, the anti-bot token with its retry, and recovery when a slot is taken
+  mid-form without losing what the visitor typed. Built from three smaller hooks you can
+  use separately.
+- `overrides`: rename admin screens, add your own fields, change the list columns, swap a
+  component. Merged on top of what the plugin built, with your hooks running after ours.
+  An override that removes a guarantee, such as the unique lock key or the status guard,
+  refuses to start rather than silently weakening it.
 
 **Packaging**
 
