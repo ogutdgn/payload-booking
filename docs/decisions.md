@@ -45,3 +45,18 @@ The rewritten spec was re-verified: coverage of all 76 findings and the 15 decis
 | Calendar attachments carry a MIME `method` parameter matching the file. | RFC 6047 requires it; a cancellation labelled `method=REQUEST` reads as a new invitation. |
 | Appointments list shows `slotStart` as its time column. | The native business-zone rendering only applies to that column; the stored text columns would have bypassed it. |
 | `slotLocalDate`, `slotLocalTime` and `title` derive from the row's own stored zone, never the live settings global. | Otherwise a later timezone change would silently re-derive existing rows on the next update, breaking the immutable-snapshot rule. |
+
+## 2026-09-16 — release readiness (ring 6)
+
+| Change | Reason |
+|---|---|
+| Test files and fixtures excluded from the published package. | The first tarball shipped 175 files including every `.spec.js` and its source map. Now 100 files, `dist/` only. |
+| CI checks the tarball, not just the tests: that `dist/` is present, that `src/` is not, that LICENSE ships, and that every `exports` entry points at `dist/`. | This is the failure the incumbent plugin shipped, and it is invisible to a normal test run because the dev app imports source directly. |
+| Unit tests run under two timezones in CI (`UTC` and `America/Chicago`). | The slot generator must not depend on the server's zone; one timezone would hide that. |
+| Integration tests run on PostgreSQL and MongoDB in CI. | The lock key behaves differently on MongoDB, and a Postgres-only suite would not catch it. |
+
+**Packaged install verified by hand:** the tarball was installed into a fresh project with
+Payload, Next and React. `pnpm why @payloadcms/ui` reports one version, one copy each of
+`payload` and `react`, all five entry points resolve, and `buildConfig` with the plugin
+produces four collections, one global, eight endpoints, two admin components and a unique
+indexed lock key.

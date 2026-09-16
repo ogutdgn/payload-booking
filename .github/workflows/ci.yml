@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+env:
+  BOOKING_TOKEN_SECRET: ci-only-booking-secret-at-least-32-chars
+  PAYLOAD_SECRET: ci-only-payload-secret
+
+jobs:
+  checks:
+    name: Typecheck and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+
+  unit:
+    name: Unit tests (${{ matrix.tz }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The slot generator must not depend on the server's own timezone. Running the
+        # suite under two very different zones is what proves it.
+        tz: [UTC, America/Chicago]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - env:
+          TZ: ${{ matrix.tz }}
+        run: pnpm test:unit
+
+  integration-postgres:
+    name: Integration tests (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        env:
+          POSTGRES_DB: payload_booking_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        image: postgres:17
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      # The race test is the reason this plugin exists, so it runs against a real
+      # PostgreSQL rather than an in-memory stand-in.
+      - env:
+          DATABASE_URL: postgres://postgres@localhost:5432/payload_booking_test
+        run: pnpm vitest run --project int
+
+  integration-mongo:
+    name: Integration tests (MongoDB)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - name: Cache MongoDB binaries
+        uses: actions/cache@v4
+        with:
+          key: mongodb-binaries-${{ runner.os }}
+          path: ~/.cache/mongodb-binaries
+      - run: pnpm install --frozen-lockfile
+      # Both adapters, every release. The lock key behaves differently on MongoDB, and a
+      # PostgreSQL-only suite would not catch it.
+      - env:
+          MONGOMS_DOWNLOAD_DIR: ~/.cache/mongodb-binaries
+        run: pnpm test:int:mongo
+
+  package:
+    name: Packaged install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      # Catches the failure the incumbent plugin shipped: a tarball whose exports point at
+      # source files that are not in it.
+      - run: pnpm pack --pack-destination /tmp
+      - name: Check the tarball contents
+        run: |
+          tar -tzf /tmp/*.tgz | sort > /tmp/files.txt
+          cat /tmp/files.txt
+          grep -q 'package/dist/index.js' /tmp/files.txt
+          grep -q 'package/dist/exports/client.js' /tmp/files.txt
+          grep -q 'package/dist/exports/rsc.js' /tmp/files.txt
+          grep -q 'package/dist/exports/react.js' /tmp/files.txt
+          grep -q 'package/dist/react/styles.css' /tmp/files.txt
+          grep -q 'package/LICENSE' /tmp/files.txt
+          ! grep -q 'package/src/' /tmp/files.txt
+      - name: Check the published exports point at dist
+        run: |
+          tar -xzOf /tmp/*.tgz package/package.json > /tmp/published.json
+          node -e "
+            const pkg = require('/tmp/published.json')
+            const entries = Object.entries(pkg.exports)
+            for (const [name, value] of entries) {
+              const target = typeof value === 'string' ? value : value.import
+              if (!target.startsWith('./dist/')) {
+                throw new Error(\`exports['\${name}'] points at \${target}, not dist\`)
+              }
+            }
+            console.log('exports:', entries.map(([name]) => name).join(', '))
+          "

@@ -1,0 +1,10 @@
+{
+  // Declarations for the published package only.
+  //
+  // Separate from tsconfig.json on purpose: the root config has to keep including the spec
+  // files so the editor and type-aware linting can see them, but they must not be compiled
+  // into dist/ and shipped to every host that installs this.
+  "extends": "./tsconfig.json",
+  "exclude": ["./src/**/*.spec.ts", "./src/core/fixtures.ts"],
+  "include": ["./src/**/*.ts", "./src/**/*.tsx"]
+}
