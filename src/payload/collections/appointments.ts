@@ -112,7 +112,12 @@ export const appointmentsCollection = (args: {
         name: 'slotStart',
         type: 'date',
         access: { update: never },
-        admin: { readOnly: true },
+        admin: {
+          // Without this the picker shows the date alone, so the owner would have to open
+          // the list or read the title to find out what time the appointment is.
+          date: { displayFormat: 'd MMM yyyy, h:mm a', pickerAppearance: 'dayAndTime' },
+          readOnly: true,
+        },
         index: true,
         label: 'Starts',
         required: true,

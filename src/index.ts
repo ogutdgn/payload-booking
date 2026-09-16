@@ -9,7 +9,7 @@ import { bookingSettingsGlobal } from './payload/globals/bookingSettings.js'
 import { seedBooking } from './payload/seed.js'
 import { assertTimezoneSupported, resolveTimezones } from './payload/timezones.js'
 import { buildBookingEndpoints } from './server/index.js'
-import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS } from './types.js'
+import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS, PACKAGE_NAME } from './types.js'
 
 export * from './core/index.js'
 export * from './server/index.js'
@@ -65,24 +65,57 @@ export const bookingPlugin =
 
     config.collections = [
       ...(config.collections ?? []),
-      // The admin component paths are passed in the next step, once the components exist.
-      // Registering a path with no implementation makes Payload log an import-map error on
-      // every render, so the paths and the components land together.
-      appointmentsCollection({ options, slugs }),
+      appointmentsCollection({
+        options,
+        slugs,
+        statusActionsComponent: `${PACKAGE_NAME}/client#StatusActions`,
+        statusLabelComponent: `${PACKAGE_NAME}/client#StatusLabel`,
+      }),
       blackoutDatesCollection({ options, slugs }),
-      resourcesCollection({ options, slugs }),
+      resourcesCollection({
+        options,
+        rowLabelComponent: `${PACKAGE_NAME}/client#SessionRowLabel`,
+        slugs,
+      }),
     ]
 
     config.globals = [
       ...(config.globals ?? []),
-      bookingSettingsGlobal({ options, slugs }),
+      bookingSettingsGlobal({
+        options,
+        previewComponent: `${PACKAGE_NAME}/client#WeekdayPreview`,
+        rowLabelComponent: `${PACKAGE_NAME}/client#SessionRowLabel`,
+        slugs,
+      }),
     ]
 
     if (!options.disabled) {
       config.endpoints = [...(config.endpoints ?? []), ...buildBookingEndpoints(options)]
     }
 
-    // TODO(ring 4): push NavLinks and TodayWidget into admin.components.
+    // Registered in object form so the components receive the plugin's own options: a
+    // string-registered component gets only Payload's props and could not know the
+    // appointments slug or whether the plugin is disabled.
+    config.admin = config.admin ?? {}
+    config.admin.components = config.admin.components ?? {}
+    config.admin.components.afterNavLinks = [
+      ...(config.admin.components.afterNavLinks ?? []),
+      {
+        clientProps: { appointmentsSlug: slugs.appointments, disabled: Boolean(options.disabled) },
+        path: `${PACKAGE_NAME}/client#NavLinks`,
+      },
+    ]
+    config.admin.components.beforeDashboard = [
+      ...(config.admin.components.beforeDashboard ?? []),
+      {
+        path: `${PACKAGE_NAME}/rsc#TodayWidget`,
+        serverProps: {
+          disabled: Boolean(options.disabled),
+          labels: options.labels,
+          slugs,
+        },
+      },
+    ]
 
     const incomingOnInit = config.onInit
 

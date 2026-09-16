@@ -26,9 +26,10 @@ export const slugify = (value: string): string =>
  */
 export const resourcesCollection = (args: {
   options: BookingPluginOptions
+  rowLabelComponent?: string
   slugs: ResolvedSlugs
 }): CollectionConfig => {
-  const { options, slugs } = args
+  const { options, rowLabelComponent, slugs } = args
 
   return {
     slug: slugs.resources,
@@ -102,6 +103,7 @@ export const resourcesCollection = (args: {
           name: 'scheduleOverride',
           dbPrefix: 'br',
           label: 'Opening times for this location',
+          rowLabelComponent,
         }),
         admin: {
           condition: (data) => Boolean(data?.useScheduleOverride),

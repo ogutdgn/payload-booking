@@ -1,3 +1,3 @@
-// Admin server components. Receives Payload's ServerProps plus the plugin's serverProps.
-// TODO(ring 4): TodayWidget.
-export {}
+// Admin server components. These receive Payload's own server props plus whatever the
+// plugin passes as serverProps when it registers them.
+export { TodayWidget } from '../admin/TodayWidget.js'

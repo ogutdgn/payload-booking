@@ -1,7 +1,5 @@
 import type { Payload } from 'payload'
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-
 import {
   createAvailabilityHandler,
   createBookHandler,
@@ -9,7 +7,10 @@ import {
   createResourcesHandler,
   resolveServerOptions,
 } from '@ogutdgn/payload-booking'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
+import { bookingOptions } from '../bookingOptions.js'
+import { callEndpoint, capturedEmails, clearCapturedEmails } from './endpointHelpers.js'
 import {
   APPOINTMENTS,
   bootPayload,
@@ -18,8 +19,6 @@ import {
   getResource,
   resetSettings,
 } from './helpers.js'
-import { callEndpoint, capturedEmails, clearCapturedEmails } from './endpointHelpers.js'
-import { bookingOptions } from '../bookingOptions.js'
 
 const server = resolveServerOptions(bookingOptions)
 const availability = createAvailabilityHandler(server)
@@ -56,8 +55,8 @@ const firstFreeSlot = async (): Promise<Slot> => {
 
 const validBody = (overrides: Record<string, unknown> = {}) => ({
   customer: {
-    email: 'jane@example.com',
     name: 'Jane Doe',
+    email: 'jane@example.com',
     phone: '(512) 555-0111',
   },
   ...overrides,
@@ -112,7 +111,7 @@ describe('GET /availability', () => {
     await payload.create({
       collection: APPOINTMENTS as never,
       data: {
-        customer: { email: 'x@example.com', name: 'X', phone: '1' },
+        customer: { name: 'X', email: 'x@example.com', phone: '1' },
         resource: resourceId,
         seat: 0,
         slotStart: slot.start,
@@ -297,7 +296,7 @@ describe('POST /book', () => {
     await payload.create({
       collection: APPOINTMENTS as never,
       data: {
-        customer: { email: 'first@example.com', name: 'First', phone: '1' },
+        customer: { name: 'First', email: 'first@example.com', phone: '1' },
         resource: resourceId,
         seat: 0,
         slotStart: slot.start,
@@ -350,7 +349,7 @@ describe('POST /book', () => {
     const slot = await firstFreeSlot()
     const { body, status } = await callEndpoint({
       body: {
-        customer: { email: 'not-an-email', name: '', phone: '1' },
+        customer: { name: '', email: 'not-an-email', phone: '1' },
         formToken: token,
         start: slot.start,
       },
@@ -372,8 +371,8 @@ describe('POST /book', () => {
     const { status } = await callEndpoint({
       body: {
         customer: {
-          email: 'jane@example.com',
           name: 'Jane',
+          email: 'jane@example.com',
           phone: '1',
           role: 'admin',
         },
@@ -392,7 +391,7 @@ describe('POST /book', () => {
     const slot = await firstFreeSlot()
     const { body, status } = await callEndpoint({
       body: validBody({
-        customer: { email: '  Jane@Example.COM ', name: 'Jane Doe', phone: '1' },
+        customer: { name: 'Jane Doe', email: '  Jane@Example.COM ', phone: '1' },
         formToken: token,
         start: slot.start,
       }),
@@ -445,7 +444,7 @@ describe('POST /book', () => {
         collection: APPOINTMENTS as never,
         data: {
           createdAt: `2024-0${index + 1}-14T15:00:00.000Z`,
-          customer: { email: 'jane@example.com', name: 'Jane Doe', phone: '1' },
+          customer: { name: 'Jane Doe', email: 'jane@example.com', phone: '1' },
           resource: resourceId,
           seat: index,
           slotStart: `2024-0${index + 1}-15T15:00:00.000Z`,

@@ -1,4 +1,4 @@
-import type { Payload, PayloadHandler, PayloadRequest } from 'payload'
+import type { Payload, PayloadHandler } from 'payload'
 
 import config from '@payload-config'
 import { createPayloadRequest } from 'payload'
@@ -12,13 +12,13 @@ export const API_BASE = 'http://localhost:3000/api/booking'
  * matches a path, so `:id` routes get their parameters set explicitly.
  */
 export const callEndpoint = async (args: {
+  body?: unknown
   handler: PayloadHandler
   headers?: Record<string, string>
   method?: string
   path: string
   routeParams?: Record<string, unknown>
   token?: string
-  body?: unknown
 }): Promise<{ body: Record<string, unknown>; status: number }> => {
   const headers: Record<string, string> = {
     'content-type': 'application/json',
@@ -47,7 +47,7 @@ export const callEndpoint = async (args: {
     req.routeParams = args.routeParams
   }
 
-  const response = await args.handler(req as PayloadRequest)
+  const response = await args.handler(req)
 
   return {
     body: (await response.json()) as Record<string, unknown>,

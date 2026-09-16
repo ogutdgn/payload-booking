@@ -41,6 +41,8 @@ export type WeeklyScheduleFieldArgs = {
   dbPrefix: string
   /** Rendered under each day, showing the resulting slots. Omitted where it cannot work. */
   previewComponent?: string
+  /** Renders the time on each collapsed row, instead of "Start time 01". */
+  rowLabelComponent?: string
 }
 
 const dayGroup = (day: Weekday, args: WeeklyScheduleFieldArgs): GroupField => {
@@ -59,6 +61,7 @@ const dayGroup = (day: Weekday, args: WeeklyScheduleFieldArgs): GroupField => {
       name: 'sessionStarts',
       type: 'array',
       admin: {
+        components: { RowLabel: args.rowLabelComponent },
         condition: (_, siblingData) => Boolean(siblingData?.open),
         description:
           'The times an appointment can start, in 24-hour form such as 09:00 or 14:30. ' +

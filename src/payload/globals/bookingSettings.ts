@@ -10,9 +10,10 @@ import { resolveTimezones } from '../timezones.js'
 export const bookingSettingsGlobal = (args: {
   options: BookingPluginOptions
   previewComponent?: string
+  rowLabelComponent?: string
   slugs: ResolvedSlugs
 }): GlobalConfig => {
-  const { options, previewComponent, slugs } = args
+  const { options, previewComponent, rowLabelComponent, slugs } = args
   const timezones = resolveTimezones(options.supportedTimezones)
 
   return {
@@ -140,6 +141,7 @@ export const bookingSettingsGlobal = (args: {
         dbPrefix: 'bs',
         label: 'Opening times',
         previewComponent,
+        rowLabelComponent,
       }),
       {
         name: 'location',

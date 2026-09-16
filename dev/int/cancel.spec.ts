@@ -1,7 +1,5 @@
 import type { Payload } from 'payload'
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-
 import {
   createAppointmentByTokenHandler,
   createAvailabilityHandler,
@@ -11,6 +9,7 @@ import {
   resolveServerOptions,
   signCancelToken,
 } from '@ogutdgn/payload-booking'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { bookingOptions } from '../bookingOptions.js'
 import { callEndpoint, capturedEmails, clearCapturedEmails, loginDevUser } from './endpointHelpers.js'
@@ -79,7 +78,7 @@ const createBookingAt = async (
   const created = (await payload.create({
     collection: APPOINTMENTS as never,
     data: {
-      customer: { email: 'jane@example.com', name: 'Jane Doe', phone: '(512) 555-0111' },
+      customer: { name: 'Jane Doe', email: 'jane@example.com', phone: '(512) 555-0111' },
       resource: resourceId,
       seat: 0,
       slotEnd: new Date(Date.parse(slotStart) + 3_600_000).toISOString(),

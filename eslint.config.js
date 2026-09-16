@@ -23,6 +23,11 @@ export const defaultESLintIgnores = [
 ]
 
 export default [
+  {
+    // Build output, not source. Linting dev/.next also fails outright, because Next
+    // rewrites those chunks while ESLint is reading them.
+    ignores: ['**/.next/**', '**/dist/**', '**/node_modules/**', 'dev/payload-types.ts'],
+  },
   ...payloadEsLintConfig,
   {
     rules: {

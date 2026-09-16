@@ -1,3 +1,4 @@
+import { bookingPlugin } from '@ogutdgn/payload-booking'
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
@@ -5,11 +6,9 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server'
 import path from 'path'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
-import { bookingPlugin } from '@ogutdgn/payload-booking'
-
-import { bookingOptions } from './bookingOptions.js'
 import { fileURLToPath } from 'url'
 
+import { bookingOptions } from './bookingOptions.js'
 import { testEmailAdapter } from './helpers/testEmailAdapter.js'
 import { seed } from './seed.js'
 
@@ -49,14 +48,14 @@ const buildDevConfig = async () => {
     collections: [
       {
         slug: 'users',
-        auth: true,
         admin: { useAsTitle: 'email' },
+        auth: true,
         fields: [
           {
             name: 'roles',
             type: 'select',
-            hasMany: true,
             defaultValue: ['admin'],
+            hasMany: true,
             options: [
               { label: 'Admin', value: 'admin' },
               { label: 'Editor', value: 'editor' },
