@@ -1,0 +1,153 @@
+{
+  "name": "@ogutdgn/payload-booking",
+  "version": "0.1.0",
+  "description": "Appointment booking for Payload CMS 3.x: database-enforced slot uniqueness, magic-link cancellation, and exported booking UI.",
+  "keywords": [
+    "payload",
+    "payloadcms",
+    "payload-plugin",
+    "booking",
+    "appointments",
+    "scheduling"
+  ],
+  "homepage": "https://github.com/ogutdgn/payload-booking#readme",
+  "bugs": {
+    "url": "https://github.com/ogutdgn/payload-booking/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ogutdgn/payload-booking.git"
+  },
+  "license": "MIT",
+  "author": "ogutdgn",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./client": {
+      "import": "./src/exports/client.ts",
+      "types": "./src/exports/client.ts",
+      "default": "./src/exports/client.ts"
+    },
+    "./rsc": {
+      "import": "./src/exports/rsc.ts",
+      "types": "./src/exports/rsc.ts",
+      "default": "./src/exports/rsc.ts"
+    },
+    "./react": {
+      "import": "./src/exports/react.ts",
+      "types": "./src/exports/react.ts",
+      "default": "./src/exports/react.ts"
+    },
+    "./styles.css": "./src/react/styles.css"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm copyfiles && pnpm build:types && pnpm build:swc",
+    "build:swc": "swc ./src -d ./dist --config-file .swcrc --strip-leading-paths",
+    "build:types": "tsc --outDir dist --rootDir ./src",
+    "clean": "rimraf {dist,*.tsbuildinfo}",
+    "copyfiles": "copyfiles -u 1 \"src/**/*.{html,css,scss,ttf,woff,woff2,eot,svg,jpg,png,json}\" dist/",
+    "dev": "next dev dev --turbo",
+    "dev:generate-importmap": "pnpm dev:payload generate:importmap",
+    "dev:generate-types": "pnpm dev:payload generate:types",
+    "dev:payload": "cross-env PAYLOAD_CONFIG_PATH=./dev/payload.config.ts payload",
+    "generate:importmap": "pnpm dev:generate-importmap",
+    "generate:types": "pnpm dev:generate-types",
+    "lint": "eslint",
+    "lint:fix": "eslint ./src --fix",
+    "prepublishOnly": "pnpm clean && pnpm build",
+    "test": "pnpm test:unit && pnpm test:int",
+    "test:e2e": "playwright test",
+    "test:int": "vitest run --project int",
+    "test:int:mongo": "cross-env DB_ADAPTER=mongo vitest run --project int",
+    "test:unit": "vitest run --project unit",
+    "typecheck": "tsc --noEmit -p dev/tsconfig.json"
+  },
+  "dependencies": {
+    "@date-fns/tz": "^1.2.0",
+    "date-fns": "^4.1.0",
+    "qs-esm": "^8.0.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@payloadcms/db-mongodb": "3.84.1",
+    "@payloadcms/db-postgres": "3.84.1",
+    "@payloadcms/eslint-config": "3.28.0",
+    "@payloadcms/next": "3.84.1",
+    "@payloadcms/richtext-lexical": "3.84.1",
+    "@payloadcms/ui": "3.84.1",
+    "@playwright/test": "1.58.2",
+    "@swc-node/register": "1.10.9",
+    "@swc/cli": "0.6.0",
+    "@types/node": "22.19.9",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "copyfiles": "2.4.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.23.0",
+    "eslint-config-next": "16.3.3",
+    "graphql": "^16.8.1",
+    "mongodb-memory-server": "10.1.4",
+    "next": "16.3.3",
+    "open": "^10.1.0",
+    "payload": "3.84.1",
+    "prettier": "^3.4.2",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rimraf": "3.0.2",
+    "sharp": "0.35.4",
+    "sort-package-json": "^2.10.0",
+    "typescript": "5.7.3",
+    "vite-tsconfig-paths": "6.0.5",
+    "vitest": "4.0.18"
+  },
+  "peerDependencies": {
+    "@payloadcms/ui": "^3.84.1",
+    "payload": "^3.84.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "engines": {
+    "node": ">=20.9.0",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@12.3.4",
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "import": "./dist/index.js",
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./client": {
+        "import": "./dist/exports/client.js",
+        "types": "./dist/exports/client.d.ts",
+        "default": "./dist/exports/client.js"
+      },
+      "./rsc": {
+        "import": "./dist/exports/rsc.js",
+        "types": "./dist/exports/rsc.d.ts",
+        "default": "./dist/exports/rsc.js"
+      },
+      "./react": {
+        "import": "./dist/exports/react.js",
+        "types": "./dist/exports/react.d.ts",
+        "default": "./dist/exports/react.js"
+      },
+      "./styles.css": "./dist/react/styles.css"
+    },
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
+  "registry": "https://registry.npmjs.org/"
+}
