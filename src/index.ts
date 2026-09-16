@@ -2,12 +2,27 @@ import type { Config, Plugin } from 'payload'
 
 import type { BookingPluginOptions, ResolvedSlugs } from './types.js'
 
-import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS } from './types.js'
+import { appointmentsCollection } from './payload/collections/appointments.js'
+import { blackoutDatesCollection } from './payload/collections/blackoutDates.js'
+import { resourcesCollection } from './payload/collections/resources.js'
+import { bookingSettingsGlobal } from './payload/globals/bookingSettings.js'
+import { seedBooking } from './payload/seed.js'
+import { assertTimezoneSupported, resolveTimezones } from './payload/timezones.js'
+import { DEFAULT_API_BASE_PATH, DEFAULT_SLUGS, PACKAGE_NAME } from './types.js'
 
+export * from './core/index.js'
 export * from './types.js'
 
-/** Resolve slugs and the API base path, and refuse a base path that Payload would route elsewhere. */
-export const resolveOptions = (options: BookingPluginOptions, config: Config) => {
+export type ResolvedBookingOptions = {
+  apiBasePath: string
+  slugs: ResolvedSlugs
+}
+
+/** Resolve slugs and the API base path, and refuse a base path Payload would route elsewhere. */
+export const resolveOptions = (
+  options: BookingPluginOptions,
+  config: Config,
+): ResolvedBookingOptions => {
   const slugs: ResolvedSlugs = { ...DEFAULT_SLUGS, ...options.slugs }
   const apiBasePath = options.apiBasePath ?? DEFAULT_API_BASE_PATH
 
@@ -20,7 +35,7 @@ export const resolveOptions = (options: BookingPluginOptions, config: Config) =>
   if (takenSlugs.has(firstSegment)) {
     throw new Error(
       `[payload-booking] apiBasePath "${apiBasePath}" starts with "${firstSegment}", which is a registered collection or global slug. ` +
-        `Payload would route those requests to that collection instead of the plugin. Choose another apiBasePath.`,
+        `Payload routes those requests to that collection instead of the plugin, so every plugin endpoint would 404. Choose another apiBasePath.`,
     )
   }
 
@@ -30,24 +45,59 @@ export const resolveOptions = (options: BookingPluginOptions, config: Config) =>
 /**
  * Appointment booking for Payload CMS 3.x.
  *
- * Build order (spec §4.2): collections and globals, then endpoints, then admin
- * components, then the exported booking UI. This entry only wires them together.
+ * Collections, globals and admin components are registered even when `disabled`, so the
+ * host's database schema and generated import map are identical in every environment.
+ * Only behaviour is switched off: endpoints, hook side effects, emails and seeding.
  */
 export const bookingPlugin =
   (options: BookingPluginOptions): Plugin =>
   (config: Config): Config => {
     const { apiBasePath, slugs } = resolveOptions(options, config)
 
-    // Collections and globals are registered even when `disabled`, so the host's
-    // database schema and import map stay identical in every environment (spec §5).
-    config.collections = config.collections ?? []
-    config.globals = config.globals ?? []
+    assertTimezoneSupported(
+      options.defaults.settings.timezone,
+      resolveTimezones(options.supportedTimezones),
+    )
 
-    // TODO(ring 2): push appointments, booking-resources, booking-blackout-dates, booking-settings.
-    // TODO(ring 3): push endpoints under `apiBasePath` and wire onInit seeding.
-    // TODO(ring 4): push admin components in object form with clientProps/serverProps.
+    config.collections = [
+      ...(config.collections ?? []),
+      appointmentsCollection({
+        options,
+        slugs,
+        statusActionsComponent: `${PACKAGE_NAME}/client#StatusActions`,
+        statusLabelComponent: `${PACKAGE_NAME}/client#StatusLabel`,
+      }),
+      blackoutDatesCollection({ options, slugs }),
+      resourcesCollection({ options, slugs }),
+    ]
+
+    config.globals = [
+      ...(config.globals ?? []),
+      bookingSettingsGlobal({
+        options,
+        previewComponent: `${PACKAGE_NAME}/client#WeekdayPreview`,
+        slugs,
+      }),
+    ]
+
+    // TODO(ring 3): push endpoints under `apiBasePath`.
     void apiBasePath
-    void slugs
+
+    // TODO(ring 4): push NavLinks and TodayWidget into admin.components.
+
+    const incomingOnInit = config.onInit
+
+    config.onInit = async (payload) => {
+      if (incomingOnInit) {
+        await incomingOnInit(payload)
+      }
+
+      if (options.disabled) {
+        return
+      }
+
+      await seedBooking({ options, payload, slugs })
+    }
 
     return config
   }

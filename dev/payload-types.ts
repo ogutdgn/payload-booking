@@ -68,6 +68,9 @@ export interface Config {
   blocks: {};
   collections: {
     users: User;
+    appointments: Appointment;
+    'booking-blackout-dates': BookingBlackoutDate;
+    'booking-resources': BookingResource;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,6 +79,9 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
+    appointments: AppointmentsSelect<false> | AppointmentsSelect<true>;
+    'booking-blackout-dates': BookingBlackoutDatesSelect<false> | BookingBlackoutDatesSelect<true>;
+    'booking-resources': BookingResourcesSelect<false> | BookingResourcesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -85,8 +91,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    'booking-settings': BookingSetting;
+  };
+  globalsSelect: {
+    'booking-settings': BookingSettingsSelect<false> | BookingSettingsSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -142,6 +152,245 @@ export interface User {
   collection: 'users';
 }
 /**
+ * Every appointment, past and future.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "appointments".
+ */
+export interface Appointment {
+  id: number;
+  title?: string | null;
+  /**
+   * Quote this when the customer calls.
+   */
+  reference?: string | null;
+  resource: number | BookingResource;
+  slotStart: string;
+  slotStart_tz: SupportedTimezones;
+  slotEnd?: string | null;
+  slotLocalDate?: string | null;
+  slotLocalTime?: string | null;
+  seat?: number | null;
+  slotLockKey?: string | null;
+  status: 'confirmed' | 'cancelled' | 'completed' | 'no-show';
+  /**
+   * What the customer entered when booking. Not editable.
+   */
+  customer: {
+    /**
+     * As the customer typed it.
+     */
+    name: string;
+    email: string;
+    phone: string;
+  };
+  message?: string | null;
+  /**
+   * Only your team sees this. The customer never does.
+   */
+  internalNotes?: string | null;
+  cancelledAt?: string | null;
+  cancelledBy?: ('customer' | 'business') | null;
+  cancellationReason?: string | null;
+  /**
+   * What was sent, and whether it went out.
+   */
+  emailLog?:
+    | {
+        event?: string | null;
+        to?: string | null;
+        sentAt?: string | null;
+        providerId?: string | null;
+        error?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Where the booking came from.
+   */
+  source?: {
+    page?: string | null;
+    referrer?: string | null;
+    utmSource?: string | null;
+    utmMedium?: string | null;
+    utmCampaign?: string | null;
+    ipHash?: string | null;
+    userAgent?: string | null;
+  };
+  googleEventId?: string | null;
+  googleCalendarSyncedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The places or people that appointments are booked with.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-resources".
+ */
+export interface BookingResource {
+  id: number;
+  /**
+   * What customers see, such as "Showroom".
+   */
+  name: string;
+  /**
+   * A short identifier used in links. Filled in from the name if you leave it blank.
+   */
+  slug?: string | null;
+  /**
+   * Untick to stop offering appointments here without deleting anything.
+   */
+  active?: boolean | null;
+  /**
+   * Leave blank to use the number from Booking Settings. Set it only if this location differs.
+   */
+  capacityPerSlot?: number | null;
+  /**
+   * Tick if this location has its own opening times. Otherwise it follows Booking Settings.
+   */
+  useScheduleOverride?: boolean | null;
+  /**
+   * Used instead of the times in Booking Settings.
+   */
+  scheduleOverride?: {
+    monday?: {
+      /**
+       * Tick if you take appointments on Mondays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    tuesday?: {
+      /**
+       * Tick if you take appointments on Tuesdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    wednesday?: {
+      /**
+       * Tick if you take appointments on Wednesdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    thursday?: {
+      /**
+       * Tick if you take appointments on Thursdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    friday?: {
+      /**
+       * Tick if you take appointments on Fridays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    saturday?: {
+      /**
+       * Tick if you take appointments on Saturdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    sunday?: {
+      /**
+       * Tick if you take appointments on Sundays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Days you are closed. These are removed from what visitors can book.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-blackout-dates".
+ */
+export interface BookingBlackoutDate {
+  id: number;
+  /**
+   * First closed day, in the form 2026-10-21.
+   */
+  startDate: string;
+  /**
+   * Last closed day. Use the same date as "From" to close a single day.
+   */
+  endDate: string;
+  /**
+   * For your own reference. Customers never see this.
+   */
+  reason?: string | null;
+  /**
+   * Leave blank to close every location.
+   */
+  resource?: (number | null) | BookingResource;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -164,10 +413,23 @@ export interface PayloadKv {
  */
 export interface PayloadLockedDocument {
   id: number;
-  document?: {
-    relationTo: 'users';
-    value: number | User;
-  } | null;
+  document?:
+    | ({
+        relationTo: 'users';
+        value: number | User;
+      } | null)
+    | ({
+        relationTo: 'appointments';
+        value: number | Appointment;
+      } | null)
+    | ({
+        relationTo: 'booking-blackout-dates';
+        value: number | BookingBlackoutDate;
+      } | null)
+    | ({
+        relationTo: 'booking-resources';
+        value: number | BookingResource;
+      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'users';
@@ -235,6 +497,166 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "appointments_select".
+ */
+export interface AppointmentsSelect<T extends boolean = true> {
+  title?: T;
+  reference?: T;
+  resource?: T;
+  slotStart?: T;
+  slotStart_tz?: T;
+  slotEnd?: T;
+  slotLocalDate?: T;
+  slotLocalTime?: T;
+  seat?: T;
+  slotLockKey?: T;
+  status?: T;
+  customer?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        phone?: T;
+      };
+  message?: T;
+  internalNotes?: T;
+  cancelledAt?: T;
+  cancelledBy?: T;
+  cancellationReason?: T;
+  emailLog?:
+    | T
+    | {
+        event?: T;
+        to?: T;
+        sentAt?: T;
+        providerId?: T;
+        error?: T;
+        id?: T;
+      };
+  source?:
+    | T
+    | {
+        page?: T;
+        referrer?: T;
+        utmSource?: T;
+        utmMedium?: T;
+        utmCampaign?: T;
+        ipHash?: T;
+        userAgent?: T;
+      };
+  googleEventId?: T;
+  googleCalendarSyncedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-blackout-dates_select".
+ */
+export interface BookingBlackoutDatesSelect<T extends boolean = true> {
+  startDate?: T;
+  endDate?: T;
+  reason?: T;
+  resource?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-resources_select".
+ */
+export interface BookingResourcesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  active?: T;
+  capacityPerSlot?: T;
+  useScheduleOverride?: T;
+  scheduleOverride?:
+    | T
+    | {
+        monday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        tuesday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        wednesday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        thursday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        friday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        saturday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        sunday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -272,6 +694,341 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * When you take appointments, how long they are, and who is told about them.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-settings".
+ */
+export interface BookingSetting {
+  id: number;
+  /**
+   * The timezone your business runs in. Every time on this page, on your website and in emails is shown in this zone.
+   */
+  timezone:
+    | 'Pacific/Midway'
+    | 'Pacific/Niue'
+    | 'Pacific/Honolulu'
+    | 'Pacific/Rarotonga'
+    | 'America/Anchorage'
+    | 'Pacific/Gambier'
+    | 'America/Los_Angeles'
+    | 'America/Tijuana'
+    | 'America/Denver'
+    | 'America/Phoenix'
+    | 'America/Chicago'
+    | 'America/Guatemala'
+    | 'America/New_York'
+    | 'America/Bogota'
+    | 'America/Caracas'
+    | 'America/Santiago'
+    | 'America/Buenos_Aires'
+    | 'America/Sao_Paulo'
+    | 'Atlantic/South_Georgia'
+    | 'Atlantic/Azores'
+    | 'Atlantic/Cape_Verde'
+    | 'Europe/London'
+    | 'Europe/Berlin'
+    | 'Africa/Lagos'
+    | 'Europe/Athens'
+    | 'Africa/Cairo'
+    | 'Europe/Moscow'
+    | 'Asia/Riyadh'
+    | 'Asia/Dubai'
+    | 'Asia/Baku'
+    | 'Asia/Karachi'
+    | 'Asia/Tashkent'
+    | 'Asia/Calcutta'
+    | 'Asia/Dhaka'
+    | 'Asia/Almaty'
+    | 'Asia/Jakarta'
+    | 'Asia/Bangkok'
+    | 'Asia/Shanghai'
+    | 'Asia/Singapore'
+    | 'Asia/Tokyo'
+    | 'Asia/Seoul'
+    | 'Australia/Brisbane'
+    | 'Australia/Sydney'
+    | 'Pacific/Guam'
+    | 'Pacific/Noumea'
+    | 'Pacific/Auckland'
+    | 'Pacific/Fiji';
+  /**
+   * How long one appointment lasts, in minutes.
+   */
+  slotDurationMinutes: number;
+  /**
+   * How many appointments can share one start time. Leave at 1 unless you can genuinely see more than one visitor at once.
+   */
+  capacityPerSlot: number;
+  /**
+   * How far ahead someone must book, in minutes. 120 means the next two hours are never offered. Set 0 to allow booking a slot starting in a minute.
+   */
+  minNoticeMinutes: number;
+  /**
+   * How long before the appointment a customer can still cancel themselves, in minutes. 0 lets them cancel right up to the start time.
+   */
+  cancellationCutoffMinutes: number;
+  /**
+   * How far into the future visitors can book.
+   */
+  bookingWindow: {
+    /**
+     * Rolling days always offers the same number of days ahead. Calendar weeks offers whole weeks, so the last bookable day moves only when a new week starts.
+     */
+    mode: 'rolling-days' | 'calendar-weeks';
+    /**
+     * Including today. 14 means today plus the next 13 days.
+     */
+    rollingDays?: number | null;
+    /**
+     * Including this week. 2 means this week and next week. Weeks start Monday.
+     */
+    calendarWeeks?: number | null;
+  };
+  /**
+   * Which days you are open, and the times an appointment can start on each day.
+   */
+  weeklySchedule?: {
+    monday?: {
+      /**
+       * Tick if you take appointments on Mondays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    tuesday?: {
+      /**
+       * Tick if you take appointments on Tuesdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    wednesday?: {
+      /**
+       * Tick if you take appointments on Wednesdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    thursday?: {
+      /**
+       * Tick if you take appointments on Thursdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    friday?: {
+      /**
+       * Tick if you take appointments on Fridays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    saturday?: {
+      /**
+       * Tick if you take appointments on Saturdays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+    sunday?: {
+      /**
+       * Tick if you take appointments on Sundays.
+       */
+      open?: boolean | null;
+      /**
+       * The times an appointment can start, in 24-hour form such as 09:00 or 14:30. To skip a lunch hour, simply leave that time out.
+       */
+      sessionStarts?:
+        | {
+            time: string;
+            id?: string | null;
+          }[]
+        | null;
+    };
+  };
+  /**
+   * The address customers should come to. Shown in the confirmation email and in the calendar invitation.
+   */
+  location: string;
+  /**
+   * The number customers should call. Shown on the cancellation page and in emails.
+   */
+  phone: string;
+  /**
+   * Everyone here is emailed when a booking is made or cancelled.
+   */
+  notificationEmails: {
+    email: string;
+    id?: string | null;
+  }[];
+  /**
+   * Added to the end of the confirmation email. Use it for parking directions, what to bring, and so on.
+   */
+  confirmationNote?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "booking-settings_select".
+ */
+export interface BookingSettingsSelect<T extends boolean = true> {
+  timezone?: T;
+  slotDurationMinutes?: T;
+  capacityPerSlot?: T;
+  minNoticeMinutes?: T;
+  cancellationCutoffMinutes?: T;
+  bookingWindow?:
+    | T
+    | {
+        mode?: T;
+        rollingDays?: T;
+        calendarWeeks?: T;
+      };
+  weeklySchedule?:
+    | T
+    | {
+        monday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        tuesday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        wednesday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        thursday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        friday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        saturday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+        sunday?:
+          | T
+          | {
+              open?: T;
+              sessionStarts?:
+                | T
+                | {
+                    time?: T;
+                    id?: T;
+                  };
+            };
+      };
+  location?: T;
+  phone?: T;
+  notificationEmails?:
+    | T
+    | {
+        email?: T;
+        id?: T;
+      };
+  confirmationNote?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

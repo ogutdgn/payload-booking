@@ -66,8 +66,8 @@
     "prepublishOnly": "pnpm clean && pnpm build",
     "test": "pnpm test:unit && pnpm test:int",
     "test:e2e": "playwright test",
-    "test:int": "vitest run --project int",
-    "test:int:mongo": "cross-env DB_ADAPTER=mongo vitest run --project int",
+    "test:int": "cross-env DATABASE_URL=postgres://$USER@localhost:5432/payload_booking_test vitest run --project int",
+    "test:int:mongo": "cross-env DB_ADAPTER=mongo NODE_ENV=test vitest run --project int",
     "test:unit": "vitest run --project unit",
     "typecheck": "tsc --noEmit -p dev/tsconfig.json"
   },
