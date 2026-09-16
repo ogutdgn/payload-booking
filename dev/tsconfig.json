@@ -1,0 +1,28 @@
+{
+  "extends": "../tsconfig.json",
+  "exclude": [],
+  "include": [
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.ts",
+    "**/*.tsx",
+    "../src/**/*.ts",
+    "../src/**/*.tsx",
+    "next.config.mjs",
+    ".next/types/**/*.ts"
+  ],
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@payload-config": ["./payload.config.ts"],
+      "@ogutdgn/payload-booking": ["../src/index.ts"],
+      "@ogutdgn/payload-booking/client": ["../src/exports/client.ts"],
+      "@ogutdgn/payload-booking/rsc": ["../src/exports/rsc.ts"],
+      "@ogutdgn/payload-booking/react": ["../src/exports/react.ts"]
+    },
+    "noEmit": true,
+    "emitDeclarationOnly": false
+  }
+}
