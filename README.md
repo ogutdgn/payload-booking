@@ -33,6 +33,37 @@ sold twice** — enforced by a database uniqueness constraint, not by applicatio
 
 PostgreSQL or MongoDB, through Payload's own adapters. Node 20.9+.
 
+## Using it on a site
+
+The plugin cannot own routes, so the host adds two thin pages and renders the exported
+components. Both are in `dev/app/(frontend)/` as working references.
+
+```tsx
+// app/(frontend)/schedule/page.tsx
+import { toCustomerFieldDescriptors } from '@ogutdgn/payload-booking'
+import { BookingForm } from '@ogutdgn/payload-booking/react'
+
+export default function SchedulePage() {
+  return <BookingForm apiUrl="/api/booking" fields={toCustomerFieldDescriptors(customerFields)} />
+}
+```
+
+```tsx
+// app/(frontend)/appointments/cancel/[token]/page.tsx
+import { CancelView } from '@ogutdgn/payload-booking/react'
+
+export default async function CancelPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params
+  return <CancelView apiUrl="/api/booking" token={token} />
+}
+```
+
+Then run `payload generate:importmap` and set `BOOKING_TOKEN_SECRET`.
+
+The components are unstyled by default. Either import the optional stylesheet with
+`import '@ogutdgn/payload-booking/styles.css'`, or pass your own class names through the
+`classNames` prop. Every visible sentence can be replaced through `messages`.
+
 ## Development
 
 ```bash
@@ -53,7 +84,7 @@ the test bench and the reference implementation of everything a host has to do.
 | `pnpm test:unit` | Pure unit specs, no database |
 | `pnpm test:int` | Integration specs against PostgreSQL |
 | `pnpm test:int:mongo` | The same specs against an in-memory MongoDB |
-| `pnpm test:e2e` | Playwright browser flows |
+| `pnpm test:e2e` | Playwright browser flows (run `npx playwright install chromium` once first) |
 | `pnpm build` | Compile `src/` to `dist/` |
 
 The bench chooses its database with `DB_ADAPTER` (`postgres` by default, `mongo` for the

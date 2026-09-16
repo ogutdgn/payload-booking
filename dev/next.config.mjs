@@ -17,6 +17,16 @@ const nextConfig = {
 
     return webpackConfig
   },
+  // The cancellation token sits in this page's path, so the browser is told not to leak
+  // it to anything the page links out to.
+  async headers() {
+    return [
+      {
+        headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+        source: '/appointments/cancel/:token',
+      },
+    ]
+  },
   serverExternalPackages: ['mongodb-memory-server'],
 }
 

@@ -1,3 +1,105 @@
-/* Optional stylesheet for the exported booking components.
-   Imported by the host with: import '@ogutdgn/payload-booking/styles.css'
-   TODO(ring 5): real styles. */
+/*
+ * Optional styling for the exported booking components.
+ *
+ * Import it with `import '@ogutdgn/payload-booking/styles.css'`, or leave it out entirely
+ * and style the parts through the `classNames` prop. Deliberately plain: it should look
+ * unfinished enough that a host replaces it, rather than almost-right enough that they
+ * fight it.
+ */
+
+.booking-form h2 {
+  font-size: 1.1rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.booking-day {
+  margin-bottom: 1.25rem;
+}
+
+.booking-day__heading {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.booking-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.booking-slot {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+}
+
+.booking-slot:hover:not(:disabled) {
+  border-color: #333;
+}
+
+.booking-slot[data-selected='true'] {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.booking-slot:disabled {
+  color: #999;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+/* Keyboard focus stays visible: these are the only controls on the page. */
+.booking-slot:focus-visible,
+.booking-submit:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 2px;
+}
+
+.booking-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.9rem;
+  max-width: 28rem;
+}
+
+.booking-field input,
+.booking-field select,
+.booking-field textarea {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font: inherit;
+  padding: 0.5rem;
+}
+
+.booking-field__error {
+  color: #a11;
+  font-size: 0.85rem;
+}
+
+.booking-submit {
+  background: #1a1a1a;
+  border: 0;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.6rem 1.2rem;
+}
+
+.booking-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.booking-success h2 {
+  margin-top: 0;
+}

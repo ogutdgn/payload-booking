@@ -21,6 +21,7 @@ export * from './endpoints/book.js'
 export * from './endpoints/cancel.js'
 export * from './endpoints/read.js'
 export * from './guards.js'
+export * from './hostHelpers.js'
 export * from './options.js'
 export * from './resource.js'
 
