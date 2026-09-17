@@ -4,9 +4,10 @@ Last updated: 2026-09-16
 
 ## Next
 
-1. **Install into the Vera site.** `pnpm add @ogutdgn/payload-booking`, add the two host
-   pages, run `payload generate:importmap`, set `BOOKING_TOKEN_SECRET`, and configure an
-   email adapter with a verified sending domain.
+1. **Release 0.1.1.** The unreleased fix (empty optional customer field) is what the Vera
+   site is currently running as a hand-patched file in its `node_modules`. Needs the
+   `pnpm pack` round trip, the release commit and tag, `npm publish`, then
+   `pnpm add @ogutdgn/payload-booking@0.1.1` in Vera.
 2. **Run the browser tests once.** `npx playwright install chromium`, then `pnpm test:e2e`.
    Three specs in `dev/e2e` have never executed; the download stalled locally.
 3. **Screenshots for the README.** The admin walkthrough is written but has no images.
