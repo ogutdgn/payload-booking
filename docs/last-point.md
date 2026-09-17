@@ -31,8 +31,20 @@ Last updated: 2026-09-16
   test bench now declares an optional `purpose` select, so the integration suite covers
   custom customer fields.
 
-Branch `main`, clean, one commit ahead of the `v0.1.0` tag and not pushed. Published
-version `0.1.0`; the fix above is unreleased.
+- **Published correctly** (`0386ed3`) — 0.1.1 went out through `npm publish`, which
+  ignores `publishConfig.exports`, so its entry points resolved to `./src/*.ts` while
+  the tarball ships only `dist`: nothing could import it. 0.1.2 is the same code
+  published with pnpm. `prepublishOnly` now refuses a non-pnpm publish, naming why.
+
+Branch `main`, clean, pushed. Published: `0.1.2` (use this), `0.1.1` (broken, do not
+use), `0.1.0`. Tags `v0.1.0`, `v0.1.1`, `v0.1.2`.
+
+## In use
+
+`@ogutdgn/payload-booking` 0.1.2 runs the booking on the first client site, live for
+client review at https://vera-kbc.vercel.app. That host writes its own calendar and
+form on `useBookingFlow` and `useCancelFlow` rather than using `BookingForm`, which is
+the first real evidence the hooks are enough on their own.
 
 ## Code touchpoints
 
