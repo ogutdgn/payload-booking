@@ -1,6 +1,6 @@
 {
   "name": "@ogutdgn/payload-booking",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Appointment booking for Payload CMS 3.x: database-enforced slot uniqueness, magic-link cancellation, and exported booking UI.",
   "keywords": [
     "payload",
@@ -63,7 +63,7 @@
     "generate:types": "pnpm dev:generate-types",
     "lint": "eslint",
     "lint:fix": "eslint ./src --fix",
-    "prepublishOnly": "pnpm clean && pnpm build",
+    "prepublishOnly": "node scripts/assert-pnpm-publish.mjs && pnpm clean && pnpm build",
     "test": "pnpm test:unit && pnpm test:int",
     "test:e2e": "playwright test",
     "test:int": "cross-env DATABASE_URL=postgres://$USER@localhost:5432/payload_booking_test vitest run --project int",

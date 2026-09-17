@@ -79,6 +79,11 @@ If the commit meets an acceptance criterion in `PLUGIN_BOOKING_SPEC.md` §20: `M
 - Subject: `chore(build): release vX.Y.Z`. Body lists the CHANGELOG section verbatim.
 - Only after: `pnpm build`, `pnpm pack` round-trip into a fresh blank template (spec §17), unit + integration green.
 - Tag `vX.Y.Z` on the release commit.
+- **Publish with `pnpm publish`, never `npm publish`.** The package's `exports` point at
+  `src/` for the bench and are rewritten to `dist/` by `publishConfig.exports`, which is a
+  pnpm feature. npm ignores it and ships entry points that resolve to files the tarball
+  does not contain — that was 0.1.1. `prepublishOnly` now blocks it, and the guard is not
+  a reason to stop checking.
 
 ## What NOT to do
 

@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-17
+
+### Fixed
+
+- **0.1.1 is unusable — use this version instead.** It was published with `npm publish`,
+  which does not apply `publishConfig.exports`, so its entry points resolved to
+  `./src/*.ts` while the tarball ships only `dist`. Every import failed. The code is
+  identical; only the published manifest was wrong.
+- `prepublishOnly` now refuses a publish that is not run through pnpm, naming why.
+
 ## [0.1.1] - 2026-09-16
 
 ### Fixed
@@ -96,4 +106,5 @@ First release. Everything below is new.
 
 [0.1.0]: https://github.com/ogutdgn/payload-booking/releases/tag/v0.1.0
 [0.1.1]: https://github.com/ogutdgn/payload-booking/compare/v0.1.0...v0.1.1
-[Unreleased]: https://github.com/ogutdgn/payload-booking/compare/v0.1.1...HEAD
+[0.1.2]: https://github.com/ogutdgn/payload-booking/compare/v0.1.1...v0.1.2
+[Unreleased]: https://github.com/ogutdgn/payload-booking/compare/v0.1.2...HEAD
