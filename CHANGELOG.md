@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- An optional customer field left empty no longer refuses the whole booking. A select the
+  visitor never touched arrives as an empty string, which failed the appointment
+  collection's own option check; an optional field left alone is now stored as absent.
+  Found while wiring the plugin into its first host site.
+
+### Changed
+
+- The test bench declares an optional `purpose` select, so custom customer fields are
+  exercised by the bench and the integration suite rather than only by hosts.
+
 ## [0.1.0] - 2026-09-16
 
 First release. Everything below is new.

@@ -386,6 +386,50 @@ describe('POST /book', () => {
     expect(status).toBe(422)
   })
 
+  it('accepts an optional custom field left empty, and stores the one that was chosen', async () => {
+    const emptyToken = await agedFormToken()
+    const emptySlot = await firstFreeSlot()
+    const empty = await callEndpoint({
+      body: validBody({
+        customer: { name: 'Jane Doe', email: 'jane@example.com', phone: '1', purpose: '' },
+        formToken: emptyToken,
+        start: emptySlot.start,
+      }),
+      handler: book,
+      path: '/book',
+    })
+
+    expect(empty.status).toBe(201)
+
+    const stored = (await payload.findByID({
+      id: empty.body.id as number | string,
+      collection: 'appointments',
+    })) as unknown as { customer: { purpose?: null | string } }
+
+    expect(stored.customer.purpose ?? null).toBeNull()
+
+    const chosenToken = await agedFormToken()
+    const chosenSlot = await firstFreeSlot()
+    const chosen = await callEndpoint({
+      body: validBody({
+        customer: { name: 'John Doe', email: 'john@example.com', phone: '1', purpose: 'kitchen' },
+        formToken: chosenToken,
+        start: chosenSlot.start,
+      }),
+      handler: book,
+      path: '/book',
+    })
+
+    expect(chosen.status).toBe(201)
+
+    const withPurpose = (await payload.findByID({
+      id: chosen.body.id as number | string,
+      collection: 'appointments',
+    })) as unknown as { customer: { purpose?: null | string } }
+
+    expect(withPurpose.customer.purpose).toBe('kitchen')
+  })
+
   it('normalises the email, so the caps cannot be bypassed with capitals', async () => {
     const token = await agedFormToken()
     const slot = await firstFreeSlot()

@@ -49,6 +49,20 @@ export const bookingOptions: BookingPluginOptions = {
       },
     },
   },
+  // One optional select, so the bench exercises a custom customer field rather than
+  // only the three core ones.
+  customerFields: [
+    {
+      name: 'purpose',
+      type: 'select',
+      label: 'Which room?',
+      options: [
+        { label: 'Kitchen', value: 'kitchen' },
+        { label: 'Bathroom', value: 'bathroom' },
+        { label: 'Closet', value: 'closet' },
+      ],
+    },
+  ],
   email: { from: 'Vera Dev <bookings@example.com>' },
   routes: { bookPath: '/schedule', cancelPath: '/appointments/cancel' },
   siteUrl: 'http://localhost:3000',

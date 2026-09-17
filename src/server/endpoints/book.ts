@@ -54,7 +54,13 @@ const buildSchema = (server: ResolvedServerOptions) => {
   }
 
   for (const name of customFieldNames) {
-    customerShape[name] = z.union([z.string().max(500), z.number(), z.boolean()]).optional()
+    customerShape[name] = z
+      .union([z.string().max(500), z.number(), z.boolean()])
+      .optional()
+      // A select the visitor never touched arrives as an empty string. Writing that
+      // would fail the collection's own option check and refuse the whole booking, so
+      // an optional field left alone is absent rather than empty.
+      .transform((value) => (value === '' ? undefined : value))
   }
 
   return z
