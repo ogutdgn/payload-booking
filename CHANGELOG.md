@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-16
+
 ### Fixed
 
 - An optional customer field left empty no longer refuses the whole booking. A select the
@@ -93,4 +95,5 @@ First release. Everything below is new.
   databases, and a packaged-install check.
 
 [0.1.0]: https://github.com/ogutdgn/payload-booking/releases/tag/v0.1.0
-[Unreleased]: https://github.com/ogutdgn/payload-booking/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/ogutdgn/payload-booking/compare/v0.1.0...v0.1.1
+[Unreleased]: https://github.com/ogutdgn/payload-booking/compare/v0.1.1...HEAD

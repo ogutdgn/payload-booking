@@ -1,6 +1,6 @@
 {
   "name": "@ogutdgn/payload-booking",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Appointment booking for Payload CMS 3.x: database-enforced slot uniqueness, magic-link cancellation, and exported booking UI.",
   "keywords": [
     "payload",
